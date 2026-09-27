@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Arrow Escape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F5FA;
+    --surface:#FFFFFF;
+    --ink:#152249;
+    --ink-soft:#5B6689;
+    --accent:#3B6EF6;
+    --accent-soft:#E1E9FF;
+    --heart:#EF4949;
+    --heart-off:#E3E6EF;
+    --success:#1FA971;
+    --success-soft:#DAF5E9;
+    --danger:#EF4949;
+    --border:#E4E7F1;
+    --dot:#C7CCDE;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    font-family:'Manrope',sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+  .app{
+    width:100%;
+    max-width:480px;
+    min-height:100vh;
+    background:var(--bg);
+    display:flex;
+    flex-direction:column;
+    padding:18px 18px 24px;
+  }
+
+  /* header */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .icon-btn{
+    width:40px;height:40px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;
+    color:var(--ink);
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .icon-btn:active{transform:scale(0.94);}
+  .brand{
+    text-align:center;
+  }
+  .brand .name{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:800;
+    font-size:15px;
+    letter-spacing:.2px;
+    color:var(--ink-soft);
+  }
+  .brand .level{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:22px;
+    line-height:1.1;
+  }
+
+  /* stats row */
+  .stats{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .chip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:8px 14px;
+    font-weight:700;
+    font-size:14px;
+  }
+  .chip.difficulty{
+    color:var(--accent);
+    background:var(--accent-soft);
+    border-color:transparent;
+  }
+  .hearts{
+    display:flex;
+    gap:4px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:8px 12px;
+  }
+  .heart{font-size:17px;color:var(--heart-off);transition:transform .2s;}
+  .heart.filled{color:var(--heart);}
+  .heart.pulse{animation:heartLoss .4s ease;}
+  @keyframes heartLoss{
+    0%{transform:scale(1.4);} 100%{transform:scale(1);}
+  }
+
+  /* board */
+  .board-wrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:14px;
+    position:relative;
+    overflow:hidden;
+  }
+  svg{width:100%;height:auto;display:block;touch-action:manipulation;}
+  .arrow{cursor:pointer;}
+  .arrow .hit{fill:none;stroke:#000;stroke-opacity:0;stroke-width:18;pointer-events:stroke;}
+  .arrow .visible{fill:none;stroke:var(--ink);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s;}
+  .arrow.shake{animation:shake .4s ease;}
+  .arrow.shake .visible{stroke:var(--danger);}
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-6px);}
+    40%{transform:translateX(6px);}
+    60%{transform:translateX(-4px);}
+    80%{transform:translateX(4px);}
+  }
+  .arrow.hint .visible{stroke:var(--accent);}
+  .arrow.hint{animation:hintPulse 1.1s ease 2;}
+  @keyframes hintPulse{
+    0%,100%{opacity:1;} 50%{opacity:.35;}
+  }
+  .arrow.clearing{transition:transform .35s cubic-bezier(.4,0,.6,1), opacity .35s ease;opacity:0;}
+  .dot{fill:var(--dot);}
+
+  /* toolbar */
+  .toolbar{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+  }
+  .tool{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:10px 6px 8px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .tool:active{transform:scale(0.96);}
+  .tool .glyph{font-size:20px;}
+  .tool .label{font-size:11px;font-weight:700;color:var(--ink-soft);}
+  .tool .count{
+    font-family:'Baloo 2',sans-serif;
+    font-size:12px;font-weight:700;
+    color:var(--accent);
+  }
+  .tool[disabled]{opacity:.4;pointer-events:none;}
+
+  /* overlay */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(21,34,73,.55);
+    display:none;
+    align-items:center;justify-content:center;
+    padding:24px;
+    z-index:20;
+  }
+  .overlay.show{display:flex;}
+  .card{
+    background:var(--surface);
+    border-radius:24px;
+    padding:28px 24px 24px;
+    width:100%;max-width:340px;
+    text-align:center;
+    animation:cardIn .28s cubic-bezier(.2,.8,.3,1);
+  }
+  @keyframes cardIn{
+    from{opacity:0;transform:translateY(14px) scale(.97);}
+    to{opacity:1;transform:translateY(0) scale(1);}
+  }
+  .card .badge{
+    width:64px;height:64px;border-radius:50%;
+    margin:0 auto 14px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;
+  }
+  .card.win .badge{background:var(--success-soft);color:var(--success);}
+  .card.lose .badge{background:#FBE3E3;color:var(--danger);}
+  .card h2{
+    font-family:'Baloo 2',sans-serif;
+    margin:0 0 6px;
+    font-size:22px;
+  }
+  .card p{
+    margin:0 0 20px;
+    color:var(--ink-soft);
+    font-size:14px;
+    line-height:1.5;
+  }
+  .card .stat-row{
+    display:flex;justify-content:center;gap:22px;
+    margin-bottom:20px;
+  }
+  .card .stat-row div{text-align:center;}
+  .card .stat-row .num{font-family:'Baloo 2',sans-serif;font-size:20px;font-weight:700;}
+  .card .stat-row .lbl{font-size:11px;color:var(--ink-soft);font-weight:600;}
+  .btn{
+    display:block;width:100%;
+    border:none;border-radius:14px;
+    padding:14px;
+    font-family:'Manrope',sans-serif;
+    font-weight:800;font-size:15px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn.primary{background:var(--accent);color:#fff;}
+  .btn.ghost{background:transparent;color:var(--ink-soft);margin-top:10px;font-weight:700;font-size:13px;}
+
+  .rules p{text-align:left;font-size:13.5px;line-height:1.6;color:var(--ink-soft);}
+  .rules h2{text-align:center;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <button class="icon-btn" id="backBtn" aria-label="Restart">‹</button>
+    <div class="brand">
+      <div class="name">Arrow Escape</div>
+      <div class="level" id="levelLabel">Level 1</div>
+    </div>
+    <button class="icon-btn" id="settingsBtn" aria-label="Rules">⚙</button>
+  </header>
+
+  <div class="stats">
+    <div class="chip"><span>↗</span><span id="clearedLabel">0/0</span></div>
+    <div class="hearts" id="hearts"></div>
+    <div class="chip difficulty" id="difficultyLabel">Gentle</div>
+  </div>
+
+  <div class="board-wrap">
+    <svg id="board" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <marker id="arrowhead" viewBox="0 0 10 10" refX="7.5" refY="5" markerWidth="4.4" markerHeight="4.4" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 Z" fill="var(--ink)"></path>
+        </marker>
+      </defs>
+      <g id="dots"></g>
+      <g id="arrows"></g>
+    </svg>
+  </div>
+
+  <div class="toolbar">
+    <div class="tool" id="hintBtn">
+      <div class="glyph">💡</div>
+      <div class="label">Hint</div>
+      <div class="count" id="hintCount">3</div>
+    </div>
+    <div class="tool" id="undoBtn">
+      <div class="glyph">↺</div>
+      <div class="label">Undo</div>
+      <div class="count" id="undoCount">3</div>
+    </div>
+    <div class="tool" id="shuffleBtn">
+      <div class="glyph">🔀</div>
+      <div class="label">New board</div>
+      <div class="count">&nbsp;</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- win overlay -->
+<div class="overlay" id="winOverlay">
+  <div class="card win">
+    <div class="badge">✓</div>
+    <h2>Board cleared</h2>
+    <p>Every arrow found its way out.</p>
+    <div class="stat-row">
+      <div><div class="num" id="winCleared">0</div><div class="lbl">arrows</div></div>
+      <div><div class="num" id="winHearts">3</div><div class="lbl">lives left</div></div>
+    </div>
+    <button class="btn primary" id="nextLevelBtn">Next level →</button>
+  </div>
+</div>
+
+<!-- lose overlay -->
+<div class="overlay" id="loseOverlay">
+  <div class="card lose">
+    <div class="badge">✕</div>
+    <h2>Out of lives</h2>
+    <p>A few arrows collided. Take another run at this board.</p>
+    <button class="btn primary" id="retryBtn">Try again</button>
+    <button class="btn ghost" id="restartBtn">Restart from level 1</button>
+  </div>
+</div>
+
+<!-- rules overlay -->
+<div class="overlay" id="rulesOverlay">
+  <div class="card rules">
+    <div class="badge" style="background:var(--accent-soft);color:var(--accent);">?</div>
+    <h2>How to play</h2>
+    <p>Tap an arrow to send it sliding off the board in the direction it points.</p>
+    <p>If the path to the edge is clear, it escapes. If another arrow is in the way, you lose a life. Three mistakes ends the run.</p>
+    <p>Clear every arrow to finish the level. Use hints to reveal a safe move, or undo your last successful move.</p>
+    <button class="btn primary" id="closeRulesBtn">Got it</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var CELL = 34, MARGIN = 24;
+  var STORAGE_LEVEL = "arrowEscape_level";
+  var STORAGE_BEST = "arrowEscape_bestCleared";
+
+  var svg = document.getElementById("board");
+  var dotsLayer = document.getElementById("dots");
+  var arrowsLayer = document.getElementById("arrows");
+
+  var state = null;
+
+  function randInt(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function choice(arr){ return arr[randInt(0, arr.length-1)]; }
+
+  // ---------- level generation ----------
+  function tryPlaceArrow(dir, len, grid, rows, cols){
+    var vertical = (dir === "up" || dir === "down");
+    var fixed = vertical ? randInt(0, cols-1) : randInt(0, rows-1);
+    var size = vertical ? rows : cols;
+    if(size - len < 0) return null;
+    var tipAtLow = (dir === "up" || dir === "left");
+    var tipIdx = tipAtLow ? randInt(0, size-len) : randInt(len-1, size-1);
+    var bodyStart = tipAtLow ? tipIdx : tipIdx-len+1;
+    var bodyEnd = tipAtLow ? tipIdx+len-1 : tipIdx;
+
+    function cellAt(idx){ return vertical ? {r:idx, c:fixed} : {r:fixed, c:idx}; }
+
+    var bodyIdxs = [];
+    for(var i=bodyStart;i<=bodyEnd;i++) bodyIdxs.push(i);
+    for(var b=0;b<bodyIdxs.length;b++){
+      var cell = cellAt(bodyIdxs[b]);
+      if(grid[cell.r][cell.c] !== null) return null;
+    }
+    var exitIdxs = [];
+    if(tipAtLow){ for(var e1=0; e1<tipIdx; e1++) exitIdxs.push(e1); }
+    else { for(var e2=tipIdx+1; e2<size; e2++) exitIdxs.push(e2); }
+    for(var x=0;x<exitIdxs.length;x++){
+      var ec = cellAt(exitIdxs[x]);
+      if(grid[ec.r][ec.c] !== null) return null;
+    }
+    var ordered = bodyIdxs.slice();
+    if(tipAtLow) ordered.reverse();
+    var cells = ordered.map(cellAt);
+    return {dir: dir, cells: cells};
+  }
+
+  function generateLevel(level){
+    var rows = Math.min(11, 5 + Math.floor(level/2));
+    var cols = Math.min(9, 4 + Math.floor(level/2));
+    var maxLen = Math.min(6, 2 + Math.floor(level/4));
+    var capByGrid = Math.floor(rows*cols*0.5);
+    var targetArrows = Math.min(90, capByGrid, 6 + level*3);
+
+    for(var whole=0; whole<10; whole++){
+      var grid = [];
+      for(var r=0;r<rows;r++){ grid.push(new Array(cols).fill(null)); }
+      var arrows = [];
+      var nextId = 1;
+      var failStreak = 0;
+      while(arrows.length < targetArrows && failStreak < 700){
+        var dir = choice(["up","down","left","right"]);
+        var len = randInt(2, Math.max(2,maxLen));
+        var placement = tryPlaceArrow(dir, len, grid, rows, cols);
+        if(placement){
+          var id = nextId++;
+          placement.cells.forEach(function(c){ grid[c.r][c.c] = id; });
+          arrows.push({id:id, dir:placement.dir, cells:placement.cells, removed:false});
+          failStreak = 0;
+        } else {
+          failStreak++;
+        }
+      }
+      if(arrows.length >= Math.min(6, targetArrows)){
+        return {rows:rows, cols:cols, arrows:arrows};
+      }
+    }
+    // fallback: tiny guaranteed board
+    return {rows:4, cols:4, arrows:[
+      {id:1, dir:"right", cells:[{r:0,c:0},{r:0,c:1}], removed:false},
+      {id:2, dir:"down", cells:[{r:0,c:2},{r:1,c:2}], removed:false}
+    ]};
+  }
+
+  function isRemovable(arrow, grid, rows, cols){
+    var tip = arrow.cells[arrow.cells.length-1];
+    var step = {up:[-1,0], down:[1,0], left:[0,-1], right:[0,1]}[arrow.dir];
+    var r = tip.r+step[0], c = tip.c+step[1];
+    while(r>=0 && r<rows && c>=0 && c<cols){
+      var occ = grid[r][c];
+      if(occ !== null && occ !== arrow.id) return false;
+      r += step[0]; c += step[1];
+    }
+    return true;
+  }
+
+  function buildGrid(){
+    var grid = [];
+    for(var r=0;r<state.rows;r++) grid.push(new Array(state.cols).fill(null));
+    state.arrows.forEach(function(a){
+      if(a.removed) return;
+      a.cells.forEach(function(cell){ grid[cell.r][cell.c] = a.id; });
+    });
+    return grid;
+  }
+
+  // ---------- difficulty label ----------
+  function difficultyLabel(level){
+    if(level<=3) return "Gentle";
+    if(level<=7) return "Normal";
+    if(level<=12) return "Sharp";
+    return "Expert";
+  }
+
+  // ---------- game lifecycle ----------
+  function newLevel(level, keepCharges){
+    var gen = generateLevel(level);
+    state = {
+      level: level,
+      rows: gen.rows,
+      cols: gen.cols,
+      arrows: gen.arrows,
+      hearts: 3,
+      clearedCount: 0,
+      totalCount: gen.arrows.length,
+      hintCharges: keepCharges ? state.hintCharges : Math.min(5, 3 + Math.floor((level-1)/3)),
+      undoCharges: keepCharges ? state.undoCharges : Math.min(5, 3 + Math.floor((level-1)/3)),
+      history: []
+    };
+    localStorage.setItem(STORAGE_LEVEL, String(level));
+    document.getElementById("levelLabel").textContent = "Level " + level;
+    document.getElementById("difficultyLabel").textContent = difficultyLabel(level);
+    hideOverlays();
+    render(true);
+    updateHud();
+  }
+
+  function resetSameLevel(){
+    var gen = generateLevel(state.level);
+    state.rows = gen.rows; state.cols = gen.cols;
+    state.arrows = gen.arrows;
+    state.hearts = 3;
+    state.clearedCount = 0;
+    state.totalCount = gen.arrows.length;
+    state.history = [];
+    hideOverlays();
+    render(true);
+    updateHud();
+  }
+
+  function hideOverlays(){
+    ["winOverlay","loseOverlay"].forEach(function(id){
+      document.getElementById(id).classList.remove("show");
+    });
+  }
+
+  // ---------- rendering ----------
+  function pos(r,c){ return {x: MARGIN + c*CELL, y: MARGIN + r*CELL}; }
+
+  function render(full){
+    var w = MARGIN*2 + (state.cols-1)*CELL;
+    var h = MARGIN*2 + (state.rows-1)*CELL;
+    svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+
+    if(full){
+      dotsLayer.innerHTML = "";
+      for(var r=0;r<state.rows;r++){
+        for(var c=0;c<state.cols;c++){
+          var p = pos(r,c);
+          var dot = document.createElementNS("http://www.w3.org/2000/svg","circle");
+          dot.setAttribute("cx", p.x); dot.setAttribute("cy", p.y);
+          dot.setAttribute("r", 1.6);
+          dot.setAttribute("class","dot");
+          dotsLayer.appendChild(dot);
+        }
+      }
+    }
+
+    arrowsLayer.innerHTML = "";
+    state.arrows.forEach(function(a){
+      if(a.removed) return;
+      var tail = pos(a.cells[0].r, a.cells[0].c);
+      var tip = pos(a.cells[a.cells.length-1].r, a.cells[a.cells.length-1].c);
+      var g = document.createElementNS("http://www.w3.org/2000/svg","g");
+      g.setAttribute("class","arrow");
+      g.setAttribute("data-id", a.id);
+
+      var hit = document.createElementNS("http://www.w3.org/2000/svg","line");
+      hit.setAttribute("class","hit");
+      hit.setAttribute("x1",tail.x); hit.setAttribute("y1",tail.y);
+      hit.setAttribute("x2",tip.x); hit.setAttribute("y2",tip.y);
+
+      var line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("class","visible");
+      line.setAttribute("x1",tail.x); line.setAttribute("y1",tail.y);
+      line.setAttribute("x2",tip.x); line.setAttribute("y2",tip.y);
+      line.setAttribute("marker-end","url(#arrowhead)");
+
+      g.appendChild(hit);
+      g.appendChild(line);
+      arrowsLayer.appendChild(g);
+    });
+  }
+
+  function updateHud(){
+    document.getElementById("clearedLabel").textContent = state.clearedCount + "/" + state.totalCount;
+    var heartsEl = document.getElementById("hearts");
+    heartsEl.innerHTML = "";
+    for(var i=0;i<3;i++){
+      var span = document.createElement("span");
+      span.className = "heart" + (i < state.hearts ? " filled" : "");
+      span.textContent = "♥";
+      span.setAttribute("data-idx", i);
+      heartsEl.appendChild(span);
+    }
+    document.getElementById("hintCount").textContent = state.hintCharges;
+    document.getElementById("undoCount").textContent = state.undoCharges;
+    document.getElementById("hintBtn").toggleAttribute("disabled", state.hintCharges<=0);
+    document.getElementById("undoBtn").toggleAttribute("disabled", state.undoCharges<=0 || state.history.length===0);
+  }
+
+  // ---------- interactions ----------
+  function findArrow(id){
+    for(var i=0;i<state.arrows.length;i++){
+      if(state.arrows[i].id === id) return state.arrows[i];
+    }
+    return null;
+  }
+
+  function slideVector(dir){
+    var reach = (state.rows + state.cols) * CELL;
+    return {up:[0,-reach], down:[0,reach], left:[-reach,0], right:[reach,0]}[dir];
+  }
+
+  function onArrowTap(id){
+    var arrow = findArrow(id);
+    if(!arrow || arrow.removed) return;
+    var grid = buildGrid();
+    var g = arrowsLayer.querySelector('[data-id="'+id+'"]');
+
+    if(isRemovable(arrow, grid, state.rows, state.cols)){
+      state.history.push({id: arrow.id});
+      if(g){
+        var v = slideVector(arrow.dir);
+        g.classList.add("clearing");
+        g.style.transform = "translate(" + v[0] + "px," + v[1] + "px)";
+      }
+      setTimeout(function(){
+        arrow.removed = true;
+        state.clearedCount++;
+        render(false);
+        updateHud();
+        if(state.clearedCount >= state.totalCount){
+          showWin();
+        }
+      }, 320);
+    } else {
+      if(g) { g.classList.remove("shake"); void g.offsetWidth; g.classList.add("shake"); }
+      state.hearts = Math.max(0, state.hearts-1);
+      var heartsEl = document.getElementById("hearts");
+      updateHud();
+      var lostHeart = heartsEl.children[state.hearts];
+      if(lostHeart){ lostHeart.classList.add("pulse"); }
+      if(state.hearts <= 0){
+        setTimeout(showLose, 380);
+      }
+    }
+  }
+
+  svg.addEventListener("click", function(ev){
+    var g = ev.target.closest ? ev.target.closest("[data-id]") : null;
+    if(!g) return;
+    var id = parseInt(g.getAttribute("data-id"), 10);
+    onArrowTap(id);
+  });
+
+  // ---------- tools ----------
+  document.getElementById("hintBtn").addEventListener("click", function(){
+    if(state.hintCharges <= 0) return;
+    var grid = buildGrid();
+    var target = null;
+    for(var i=0;i<state.arrows.length;i++){
+      var a = state.arrows[i];
+      if(!a.removed && isRemovable(a, grid, state.rows, state.cols)){ target = a; break; }
+    }
+    if(!target) return;
+    state.hintCharges--;
+    updateHud();
+    var g = arrowsLayer.querySelector('[data-id="'+target.id+'"]');
+    if(g){
+      g.classList.add("hint");
+      setTimeout(function(){ g.classList.remove("hint"); }, 2300);
+    }
+  });
+
+  document.getElementById("undoBtn").addEventListener("click", function(){
+    if(state.undoCharges <= 0 || state.history.length === 0) return;
+    var last = state.history.pop();
+    var arrow = findArrow(last.id);
+    if(arrow){
+      arrow.removed = false;
+      state.clearedCount = Math.max(0, state.clearedCount-1);
+      state.undoCharges--;
+      render(false);
+      updateHud();
+    }
+  });
+
+  document.getElementById("shuffleBtn").addEventListener("click", function(){
+    resetSameLevel();
+  });
+
+  document.getElementById("backBtn").addEventListener("click", function(){
+    if(confirm("Restart from level 1? Your current board will be lost.")){
+      newLevel(1, false);
+    }
+  });
+
+  document.getElementById("settingsBtn").addEventListener("click", function(){
+    document.getElementById("rulesOverlay").classList.add("show");
+  });
+  document.getElementById("closeRulesBtn").addEventListener("click", function(){
+    document.getElementById("rulesOverlay").classList.remove("show");
+  });
+
+  // ---------- win / lose ----------
+  function showWin(){
+    var best = parseInt(localStorage.getItem(STORAGE_BEST) || "0", 10);
+    var total = best + state.clearedCount;
+    localStorage.setItem(STORAGE_BEST, String(total));
+    document.getElementById("winCleared").textContent = state.clearedCount;
+    document.getElementById("winHearts").textContent = state.hearts;
+    document.getElementById("winOverlay").classList.add("show");
+  }
+  function showLose(){
+    document.getElementById("loseOverlay").classList.add("show");
+  }
+  document.getElementById("nextLevelBtn").addEventListener("click", function(){
+    newLevel(state.level+1, true);
+  });
+  document.getElementById("retryBtn").addEventListener("click", function(){
+    resetSameLevel();
+  });
+  document.getElementById("restartBtn").addEventListener("click", function(){
+    newLevel(1, false);
+  });
+
+  // ---------- boot ----------
+  var startLevel = parseInt(localStorage.getItem(STORAGE_LEVEL) || "1", 10);
+  state = {hintCharges:3, undoCharges:3};
+  newLevel(startLevel, false);
+
+})();
+</script>
+</body>
+</html>
